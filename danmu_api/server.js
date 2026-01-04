@@ -7,8 +7,64 @@ const dotenv = require('dotenv');
 const yaml = require('js-yaml');
 
 // 配置文件路径在项目根目录（server.js 的上一级目录）
-const envPath = path.join(__dirname, '..', 'config', '.env');
-const yamlPath = path.join(__dirname, '..', 'config', 'config.yaml');
+const configDir = path.join(__dirname, '..', 'config');
+const configExampleDir = path.join(__dirname, '..', 'config_example');
+const envPath = path.join(configDir, '.env');
+const yamlPath = path.join(configDir, 'config.yaml');
+
+// 在启动时检查并复制配置文件
+checkAndCopyConfigFiles();
+
+/**
+ * 检查并自动复制配置文件
+ * 在Node环境下，如果config目录下没有.env和config.yaml，则自动从.env.example拷贝一份生成.env
+ * 在Docker环境下，如果config目录不存在或缺少配置文件，则从config_example目录复制
+ */
+function checkAndCopyConfigFiles() {
+  const envExamplePath = path.join(configDir, '.env.example');
+  const configExampleEnvPath = path.join(configExampleDir, '.env.example');
+
+  const envExists = fs.existsSync(envPath);
+  const yamlExists = fs.existsSync(yamlPath);
+  const envExampleExists = fs.existsSync(envExamplePath);
+  const configExampleExists = fs.existsSync(configExampleDir);
+  const configExampleEnvExists = fs.existsSync(configExampleEnvPath);
+
+  // 如果存在.env或config.yaml，则不需要复制
+  if (envExists || yamlExists) {
+    console.log('[server] Configuration files exist, skipping auto-copy');
+    return;
+  }
+
+  // 首先尝试从config目录下的.env.example复制
+  if (envExampleExists) {
+    try {
+      // 从.env.example复制到.env
+      fs.copyFileSync(envExamplePath, envPath);
+      console.log('[server] Copied .env.example to .env successfully');
+    } catch (error) {
+      console.log('[server] Error copying .env.example to .env:', error.message);
+    }
+  } 
+  // 如果config目录下没有.env.example，但在config_example目录下有，则从config_example复制
+  else if (configExampleExists && configExampleEnvExists) {
+    try {
+      // 确保config目录存在
+      if (!fs.existsSync(configDir)) {
+        fs.mkdirSync(configDir, { recursive: true });
+        console.log('[server] Created config directory');
+      }
+
+      // 从config_example/.env.example复制到config/.env
+      fs.copyFileSync(configExampleEnvPath, envPath);
+      console.log('[server] Copied config_example/.env.example to config/.env successfully');
+    } catch (error) {
+      console.log('[server] Error copying config_example files to config directory:', error.message);
+    }
+  } else {
+    console.log('[server] .env.example not found in config or config_example, cannot auto-copy');
+  }
+}
 
 /**
  * 从 YAML 文件加载配置
@@ -363,6 +419,7 @@ function createProxyServer() {
       let forwardProxy = null;      // 正向代理（传统代理）
       let bahamutRP = null;         // 巴哈姆特专用反代
       let tmdbRP = null;            // TMDB专用反代
+      let bilibiliRP = null;        // Bilibili专用反代
       let universalRP = null;       // 万能反代
 
       if (proxyConfig) {
@@ -378,6 +435,10 @@ function createProxyServer() {
             // TMDB专用反代：tmdb@http://example.com
             tmdbRP = config.substring(5).trim().replace(/\/+$/, '');
             console.log('[Proxy Server] TMDB reverse proxy detected:', tmdbRP);
+          } else if (config.startsWith('bilibili@')) {
+            // Bilibili专用反代：bilibili@http://example.com
+            bilibiliRP = config.substring(9).trim().replace(/\/+$/, '');
+            console.log('[Proxy Server] Bilibili reverse proxy detected:', bilibiliRP);
           } else if (config.startsWith('@')) {
             // 万能反代：@http://example.com
             universalRP = config.substring(1).trim().replace(/\/+$/, '');
@@ -418,7 +479,12 @@ function createProxyServer() {
         finalReverseProxy = tmdbRP;
         console.log('[Proxy Server] Using TMDB-specific reverse proxy');
       }
-      // 3. 检查万能反代
+      // 3. 检查是否匹配Bilibili专用反代
+      else if (bilibiliRP && originalUrlObj.hostname.includes('bilibili.com')) {
+        finalReverseProxy = bilibiliRP;
+        console.log('[Proxy Server] Using Bilibili-specific reverse proxy');
+      }
+      // 4. 检查万能反代
       else if (universalRP) {
         finalReverseProxy = universalRP;
         console.log('[Proxy Server] Using universal reverse proxy');
@@ -469,6 +535,16 @@ function createProxyServer() {
       const proxyReq = protocol.request(options, (proxyRes) => {
         res.writeHead(proxyRes.statusCode, proxyRes.headers);
         proxyRes.pipe(res, { end: true });
+      });
+
+      // 监听客户端连接断开
+      // 当 bilibili.js 触发 abort() 时，这里的 req 会触发 'close'
+      // 必须立即掐断 proxyReq，防止后台继续下载垃圾数据造成堵塞
+      req.on('close', () => {
+        if (!res.writableEnded) {
+          console.log('[Proxy Server] Client disconnected prematurely. Destroying upstream request.');
+          proxyReq.destroy();
+        }
       });
 
       proxyReq.on('error', (err) => {

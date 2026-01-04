@@ -68,9 +68,9 @@ YOUKU_CONCURRENCY: 8
 
 # ==================== 源排序配置 ====================
 
-# 数据源查询顺序（可选值：360, vod, tmdb, douban, tencent, youku, iqiyi, imgo, bilibili, renren, hanjutv, bahamut, dandan, custom）
-# 默认值：360,vod,renren,hanjutv（不包含 tencent, youku, iqiyi, imgo 和 bilibili）
-# 如需使用腾讯源、优酷源、爱奇艺源、芒果源或B站源，请手动添加：SOURCE_ORDER=360,vod,tencent,youku,iqiyi,imgo,bilibili,renren,hanjutv
+# 数据源查询顺序（可选值：360, vod, tmdb, douban, tencent, youku, iqiyi, imgo, bilibili, renren, hanjutv, bahamut, dandan, sohu, custom）
+# 默认值：360,vod,renren,hanjutv（不包含 tencent, youku, iqiyi, imgo, bilibili 和 sohu）
+# 如需使用腾讯源、优酷源、爱奇艺源、芒果源、B站源或搜狐源，请手动添加：SOURCE_ORDER=360,vod,tencent,youku,iqiyi,imgo,bilibili,ren,hanjutv,sohu
 # 如需使用巴哈姆特源，请手动添加：SOURCE_ORDER=360,vod,renren,hanjutv,bahamut
 # 如需使用弹弹play源，请手动添加：SOURCE_ORDER=360,vod,renren,hanjutv,dandan
 # 如需使用豆瓣源，请手动添加：SOURCE_ORDER=360,vod,douban,renren,hanjutv
@@ -81,7 +81,7 @@ SOURCE_ORDER: "360,vod,renren,hanjutv"
 
 # 平台优先级排序（用于自动匹配）
 # 默认值：空（自动匹配）
-# 可选值：qiyi, bilibili1, imgo, youku, qq, renren, hanjutv, bahamut, dandan, custom
+# 可选值：qiyi, bilibili1, imgo, youku, qq, sohu, renren, hanjutv, bahamut, dandan, custom
 # PLATFORM_ORDER: ""
 
 # ==================== 剧集标题过滤 ====================
@@ -191,9 +191,14 @@ STRICT_TITLE_MATCH: false
 # 代理/反代地址（用于访问受限资源）
 # 默认值：空（不使用代理/反代）
 # 格式：
-#   - 设置为代理为 http://proxy-server:port 或 https://proxy-server:port
-#   - 设置为反代为 RP@http://proxy-server:port 或 RP@https://proxy-server
-# 说明：目前只对巴哈姆特生效，如果使用 Docker 部署并且访问不了 bahamut 源，请配置代理/反代地址
+#   - 设置为代理为 http://proxy-server:port 或 https://proxy-server:port 
+#   - 设置为万能反代为 @http://proxy-server:port 或 @https://proxy-server
+#   - 设置为巴哈反代为 bahamut@http://proxy-server:port 或 bahamut@https://proxy-server
+#   - 设置为TMDB反代为 tmdb@http://proxy-server:port 或 tmdb@https://proxy-server
+#   - 设置为bilibili反代为 bilibili@http://proxy-server:port 或 bilibili@https://proxy-server
+# 说明：目前只对巴哈姆特、TMDB API、bilibili生效
+#      如果使用 Docker 部署并且访问不了 bahamut 源或 TMDB API ，请配置代理/反代地址
+#      如果想启用B站港澳台番剧的弹幕搜索与获取请配置代理/反代/解析服务器地址
 #      反代教程参考：https://github.com/wan0ge/bahamut-api-proxy
 # PROXY_URL: ""
 
@@ -272,3 +277,11 @@ MAX_LAST_SELECT_MAP: 100
 # 在建立 HTTPS 连接时是否验证服务器的 SSL/TLS 证书，0表示忽略
 # 默认值：1
 # NODE_TLS_REJECT_UNAUTHORIZED: 1
+
+# ==================== 标题映射表配置 ====================
+
+# 标题映射表（用于自动匹配时替换标题进行搜索）
+# 格式：原始标题->映射标题;原始标题->映射标题;...
+# 示例：TITLE_MAPPING_TABLE: "唐朝诡事录->唐朝诡事录之西行;国色芳华->锦绣芳华"
+# 默认值：空（不启用标题映射）
+TITLE_MAPPING_TABLE: ""

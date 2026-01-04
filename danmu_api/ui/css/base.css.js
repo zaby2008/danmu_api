@@ -11,7 +11,7 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     background: linear-gradient(135deg, #a0b9e8ff 0%, #e39db4ff 100%);
     min-height: 100vh;
-    padding: 20px;
+    padding: 5px;
 }
 
 .container {
@@ -26,7 +26,7 @@ body {
 .header {
     background: linear-gradient(135deg, #1a2980 0%, #26d0ce 100%);
     color: white;
-    padding: 20px;
+    padding: 15px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -105,7 +105,7 @@ body {
 }
 
 .content {
-    padding: 20px;
+    padding: 15px;
 }
 
 .section {
